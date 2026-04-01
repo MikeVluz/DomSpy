@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #f8f9fa;
+  --color-foreground: #1a1a2e;
+  --color-sidebar: #1a1a2e;
+  --color-sidebar-hover: #252547;
+  --color-sidebar-active: #2d2d5e;
+  --color-primary: #3B82F6;
+  --color-success: #14A44D;
+  --color-warning: #E4A11B;
+  --color-danger: #DC4C64;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "Fira Code", "Consolas", monospace;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.react-flow__node {
+  border-radius: 12px !important;
+  font-size: 12px !important;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2 !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
