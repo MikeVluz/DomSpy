@@ -8,12 +8,14 @@ import {
   GlobeAltIcon,
   UsersIcon,
   ShieldCheckIcon,
+  SwatchIcon,
 } from "@heroicons/react/24/outline";
 import UserProfileDropdown from "./UserProfileDropdown";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Squares2X2Icon },
   { href: "/domains", label: "Domínios", icon: GlobeAltIcon },
+  { href: "/groups", label: "Grupos", icon: SwatchIcon },
 ];
 
 export default function Sidebar() {

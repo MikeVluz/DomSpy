@@ -38,6 +38,7 @@ model Domain {
   pages       Page[]
   crawls      CrawlSession[]
   alerts      DismissedAlert[]
+  groups      PageGroup[]
   createdAt   DateTime       @default(now())
   lastCrawlAt DateTime?
 }
@@ -64,6 +65,7 @@ model Page {
   crawlId         String?
   crawl           CrawlSession?    @relation(fields: [crawlId], references: [id])
   dismissedAlerts DismissedAlert[]
+  groupMembers    PageGroupMember[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -108,4 +110,24 @@ model DismissedAlert {
   dismissedAt DateTime @default(now())
 
   @@unique([userId, pageId, alertType])
+}
+
+model PageGroup {
+  id        String      @id @default(cuid())
+  name      String
+  color     String      @default("#3B82F6")
+  domainId  String
+  domain    Domain      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  pages     PageGroupMember[]
+  createdAt DateTime    @default(now())
+}
+
+model PageGroupMember {
+  id        String    @id @default(cuid())
+  pageId    String
+  page      Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  groupId   String
+  group     PageGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, groupId])
 }

@@ -14,7 +14,7 @@ export async function GET(
     const domain = await prisma.domain.findUnique({
       where: { id },
       include: {
-        pages: { include: { linksFrom: true, linksTo: true } },
+        pages: { include: { linksFrom: true, linksTo: true, groupMembers: { include: { group: true } } } },
         crawls: { orderBy: { startedAt: "desc" }, take: 10 },
       },
     });
