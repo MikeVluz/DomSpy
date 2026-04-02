@@ -221,7 +221,10 @@ export default function DomainDetailPage({ params }: { params: Promise<{ id: str
 
       </main>
 
-      {selectedPage && <PageDetailPanel page={selectedPage} onClose={() => setSelectedPageId(null)} onDismissAlert={isAdmin ? handleDismissAlert : undefined} dismissedAlerts={dismissedAlerts} />}
+      {selectedPage && <PageDetailPanel page={selectedPage} onClose={() => setSelectedPageId(null)} onDismissAlert={isAdmin ? handleDismissAlert : undefined} dismissedAlerts={dismissedAlerts} onCrawlPage={isAdmin ? async (url) => {
+        await fetch("/api/crawl-page", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pageUrl: url, domainId: id }) });
+        fetchDomain();
+      } : undefined} />}
     </div>
   );
 }

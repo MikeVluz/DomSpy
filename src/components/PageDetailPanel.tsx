@@ -1,13 +1,13 @@
 "use client";
 import { getPageStatus, STATUS_COLORS, getStatusErrorMessage } from "@/types";
-import { XMarkIcon, GlobeAltIcon, ClockIcon, DocumentTextIcon, LinkIcon, ExclamationCircleIcon, CheckCircleIcon, EyeSlashIcon, ArrowTopRightOnSquareIcon, PhotoIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, GlobeAltIcon, ClockIcon, DocumentTextIcon, LinkIcon, ExclamationCircleIcon, CheckCircleIcon, EyeSlashIcon, ArrowTopRightOnSquareIcon, PhotoIcon, CodeBracketIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 
 interface PageDetail { id: string; url: string; title: string | null; description: string | null; h1: string | null; headings: string | null; bodyText: string | null; images: string | null; statusCode: number | null; responseTime: number | null; linksFrom: { href: string; statusCode: number | null; isExternal: boolean; anchor: string | null; }[]; }
-interface PageDetailPanelProps { page: PageDetail; onClose: () => void; onDismissAlert?: (pageId: string, alertType: string) => void; dismissedAlerts?: Set<string>; }
+interface PageDetailPanelProps { page: PageDetail; onClose: () => void; onDismissAlert?: (pageId: string, alertType: string) => void; dismissedAlerts?: Set<string>; onCrawlPage?: (url: string) => void; }
 
 function getTimeCategory(ms: number | null) { if (ms === null) return { label: "N/A", color: "#6B7280" }; if (ms < 900) return { label: "Otimo", color: "#14A44D" }; if (ms < 2000) return { label: "Aceitavel", color: "#E4A11B" }; return { label: "Ruim", color: "#DC4C64" }; }
 
-export default function PageDetailPanel({ page, onClose, onDismissAlert, dismissedAlerts = new Set() }: PageDetailPanelProps) {
+export default function PageDetailPanel({ page, onClose, onDismissAlert, dismissedAlerts = new Set(), onCrawlPage }: PageDetailPanelProps) {
   const status = getPageStatus(page.statusCode, page.responseTime);
   const colors = STATUS_COLORS[status];
   const timeCat = getTimeCategory(page.responseTime);
@@ -58,6 +58,11 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
           <a href={`/api/download-html?url=${encodeURIComponent(page.url)}`} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3B82F6]/10 text-[#3B82F6] rounded-lg text-xs font-medium hover:bg-[#3B82F6]/20 shrink-0">
             <CodeBracketIcon className="w-3.5 h-3.5" /> Baixar HTML
           </a>
+          {onCrawlPage && (
+            <button onClick={() => onCrawlPage(page.url)} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14A44D]/10 text-[#14A44D] rounded-lg text-xs font-medium hover:bg-[#14A44D]/20 shrink-0">
+              <ArrowPathIcon className="w-3.5 h-3.5" /> Crawl
+            </button>
+          )}
         </div>
 
         {visibleIssues.length > 0 && (
