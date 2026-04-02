@@ -10,7 +10,7 @@ import {
   ArrowLeftIcon, PlayIcon, ArrowDownTrayIcon, CheckCircleIcon,
   ExclamationTriangleIcon, XCircleIcon, SignalIcon, ArrowPathIcon,
   ClockIcon, PlusIcon, LinkIcon, PencilIcon, CheckIcon,
-  BellAlertIcon,
+  BellAlertIcon, EyeIcon, CodeBracketIcon,
 } from "@heroicons/react/24/outline";
 
 interface PageData {
@@ -43,6 +43,7 @@ export default function DomainDetailPage({ params }: { params: Promise<{ id: str
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const isAdmin = session?.user?.role === "super_admin" || session?.user?.role === "admin";
 
@@ -178,6 +179,36 @@ export default function DomainDetailPage({ params }: { params: Promise<{ id: str
           <StatusCard title="Links Quebrados" value={brokenLinks} status="error" icon={XCircleIcon} onClear={isAdmin && brokenLinks > 0 ? () => handleDismissAllAlerts("broken_link") : undefined} />
         </div>
 
+        {/* HTML Preview */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+          <div className="px-6 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <EyeIcon className="w-5 h-5 text-[#3B82F6]" />
+              <h2 className="text-sm font-semibold text-[#1a1a2e]">Visualizador de Pagina</h2>
+              {previewUrl && <span className="text-xs text-gray-400 truncate max-w-md">{previewUrl}</span>}
+            </div>
+            {previewUrl && (
+              <div className="flex items-center gap-2">
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-200 flex items-center gap-1">
+                  <EyeIcon className="w-3 h-3" /> Abrir
+                </a>
+                <a href={`/api/download-html?url=${encodeURIComponent(previewUrl)}`} className="px-3 py-1.5 bg-[#3B82F6]/10 text-[#3B82F6] rounded-lg text-xs font-medium hover:bg-[#3B82F6]/20 flex items-center gap-1">
+                  <CodeBracketIcon className="w-3 h-3" /> Baixar HTML
+                </a>
+              </div>
+            )}
+          </div>
+          <div className="h-[500px] bg-gray-50">
+            {previewUrl ? (
+              <iframe src={previewUrl} className="w-full h-full border-0" sandbox="allow-same-origin allow-scripts" title="Preview" />
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                Clique em uma pagina na arvore para visualizar
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Add Page + Bulk Import - admin only */}
         {isAdmin && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -211,7 +242,11 @@ export default function DomainDetailPage({ params }: { params: Promise<{ id: str
         {/* Site Tree */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-[#1a1a2e] mb-4">Arvore de Sites</h2>
-          <SiteTreeGraph pages={domain.pages} onNodeClick={setSelectedPageId} />
+          <SiteTreeGraph pages={domain.pages} onNodeClick={(pageId) => {
+            setSelectedPageId(pageId);
+            const page = domain.pages.find((p) => p.id === pageId);
+            if (page) setPreviewUrl(page.url);
+          }} />
         </div>
 
       </main>
