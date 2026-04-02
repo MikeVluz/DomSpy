@@ -1,6 +1,6 @@
 "use client";
 import { getPageStatus, STATUS_COLORS } from "@/types";
-import { XMarkIcon, GlobeAltIcon, ClockIcon, DocumentTextIcon, LinkIcon, ExclamationCircleIcon, CheckCircleIcon, EyeSlashIcon, ArrowTopRightOnSquareIcon, PhotoIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, GlobeAltIcon, ClockIcon, DocumentTextIcon, LinkIcon, ExclamationCircleIcon, CheckCircleIcon, EyeSlashIcon, ArrowTopRightOnSquareIcon, PhotoIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
 
 interface PageDetail { id: string; url: string; title: string | null; description: string | null; h1: string | null; headings: string | null; bodyText: string | null; images: string | null; statusCode: number | null; responseTime: number | null; linksFrom: { href: string; statusCode: number | null; isExternal: boolean; anchor: string | null; }[]; }
 interface PageDetailPanelProps { page: PageDetail; onClose: () => void; onDismissAlert?: (pageId: string, alertType: string) => void; dismissedAlerts?: Set<string>; }
@@ -53,6 +53,10 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
             <span className="text-sm text-gray-400"><strong>{externalLinks.length}</strong> externos</span>
             {brokenLinks.length > 0 && <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#DC4C64]/10 text-[#DC4C64]">{brokenLinks.length} quebrados</span>}
           </div>
+          <div className="w-px h-8 bg-gray-200" />
+          <a href={`/api/download-html?url=${encodeURIComponent(page.url)}`} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3B82F6]/10 text-[#3B82F6] rounded-lg text-xs font-medium hover:bg-[#3B82F6]/20 shrink-0">
+            <CodeBracketIcon className="w-3.5 h-3.5" /> Baixar HTML
+          </a>
         </div>
 
         {visibleIssues.length > 0 && (
