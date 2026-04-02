@@ -1,13 +1,16 @@
 "use client";
 import { getPageStatus, STATUS_COLORS, getStatusErrorMessage } from "@/types";
-import { XMarkIcon, GlobeAltIcon, ClockIcon, DocumentTextIcon, LinkIcon, ExclamationCircleIcon, CheckCircleIcon, EyeSlashIcon, ArrowTopRightOnSquareIcon, PhotoIcon, CodeBracketIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { XMarkIcon, GlobeAltIcon, ClockIcon, DocumentTextIcon, LinkIcon, ExclamationCircleIcon, CheckCircleIcon, EyeSlashIcon, ArrowTopRightOnSquareIcon, PhotoIcon, CodeBracketIcon, ArrowPathIcon, SwatchIcon } from "@heroicons/react/24/outline";
 
-interface PageDetail { id: string; url: string; title: string | null; description: string | null; h1: string | null; headings: string | null; bodyText: string | null; images: string | null; statusCode: number | null; responseTime: number | null; linksFrom: { href: string; statusCode: number | null; isExternal: boolean; anchor: string | null; }[]; }
-interface PageDetailPanelProps { page: PageDetail; onClose: () => void; onDismissAlert?: (pageId: string, alertType: string) => void; dismissedAlerts?: Set<string>; onCrawlPage?: (url: string) => void; }
+interface PageDetail { id: string; url: string; title: string | null; description: string | null; h1: string | null; headings: string | null; bodyText: string | null; images: string | null; statusCode: number | null; responseTime: number | null; linksFrom: { href: string; statusCode: number | null; isExternal: boolean; anchor: string | null; }[]; groupMembers?: { group: { id: string; name: string; color: string } }[]; }
+interface GroupOption { id: string; name: string; color: string; }
+interface PageDetailPanelProps { page: PageDetail; onClose: () => void; onDismissAlert?: (pageId: string, alertType: string) => void; dismissedAlerts?: Set<string>; onCrawlPage?: (url: string) => void; groups?: GroupOption[]; onAssignGroup?: (pageId: string, groupId: string) => void; onRemoveFromGroup?: (pageId: string) => void; }
 
 function getTimeCategory(ms: number | null) { if (ms === null) return { label: "N/A", color: "#6B7280" }; if (ms < 900) return { label: "Otimo", color: "#14A44D" }; if (ms < 2000) return { label: "Aceitavel", color: "#E4A11B" }; return { label: "Ruim", color: "#DC4C64" }; }
 
-export default function PageDetailPanel({ page, onClose, onDismissAlert, dismissedAlerts = new Set(), onCrawlPage }: PageDetailPanelProps) {
+export default function PageDetailPanel({ page, onClose, onDismissAlert, dismissedAlerts = new Set(), onCrawlPage, groups = [], onAssignGroup, onRemoveFromGroup }: PageDetailPanelProps) {
+  const currentGroup = page.groupMembers?.[0]?.group || null;
   const status = getPageStatus(page.statusCode, page.responseTime);
   const colors = STATUS_COLORS[status];
   const timeCat = getTimeCategory(page.responseTime);
@@ -62,6 +65,9 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
             <button onClick={() => onCrawlPage(page.url)} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14A44D]/10 text-[#14A44D] rounded-lg text-xs font-medium hover:bg-[#14A44D]/20 shrink-0">
               <ArrowPathIcon className="w-3.5 h-3.5" /> Crawl
             </button>
+          )}
+          {onAssignGroup && (
+            <GroupDropdown currentGroup={currentGroup} groups={groups} onAssign={(groupId) => onAssignGroup(page.id, groupId)} onRemove={onRemoveFromGroup ? () => onRemoveFromGroup(page.id) : undefined} />
           )}
         </div>
 
@@ -183,6 +189,40 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
         )}
 
       </div>
+    </div>
+  );
+}
+
+function GroupDropdown({ currentGroup, groups, onAssign, onRemove }: { currentGroup: GroupOption | null; groups: GroupOption[]; onAssign: (groupId: string) => void; onRemove?: () => void }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium shrink-0" style={currentGroup ? { backgroundColor: `${currentGroup.color}15`, color: currentGroup.color } : { backgroundColor: "#f3f4f6", color: "#6B7280" }}>
+        <SwatchIcon className="w-3.5 h-3.5" />
+        {currentGroup ? currentGroup.name : "Agrupar"}
+      </button>
+
+      {open && (
+        <div className="absolute top-full right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+          {groups.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-gray-400">Nenhum grupo criado</div>
+          ) : (
+            groups.map((g) => (
+              <button key={g.id} onClick={() => { onAssign(g.id); setOpen(false); }} className="w-full px-3 py-2 text-xs text-left hover:bg-gray-50 flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
+                {g.name}
+                {currentGroup?.id === g.id && <span className="ml-auto text-[10px] text-gray-400">atual</span>}
+              </button>
+            ))
+          )}
+          {currentGroup && onRemove && (
+            <button onClick={() => { onRemove(); setOpen(false); }} className="w-full px-3 py-2 text-xs text-left text-[#DC4C64] hover:bg-[#DC4C64]/5 border-t border-gray-100">
+              Remover do grupo
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

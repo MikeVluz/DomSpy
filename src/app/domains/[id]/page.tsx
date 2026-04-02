@@ -20,6 +20,7 @@ interface PageData {
   parentPageId: string | null;
   linksFrom: { href: string; statusCode: number | null; isExternal: boolean; anchor: string | null; toPageId: string | null; }[];
   linksTo: { href: string }[];
+  groupMembers: { group: { id: string; name: string; color: string } }[];
 }
 interface CrawlData { id: string; status: string; totalPages: number; brokenLinks: number; slowPages: number; startedAt: string; finishedAt: string | null; }
 interface DomainDetail { id: string; url: string; name: string; lastCrawlAt: string | null; pages: PageData[]; crawls: CrawlData[]; }
@@ -44,6 +45,11 @@ export default function DomainDetailPage({ params }: { params: Promise<{ id: str
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
+
+  const fetchGroups = () => {
+    fetch(`/api/groups?domainId=${id}`).then((r) => r.json()).then((data) => { if (Array.isArray(data)) setGroups(data); });
+  };
 
   const isAdmin = session?.user?.role === "super_admin" || session?.user?.role === "admin";
 
@@ -54,7 +60,7 @@ export default function DomainDetailPage({ params }: { params: Promise<{ id: str
     }).finally(() => setLoading(false));
   };
 
-  useEffect(() => { if (status === "authenticated") fetchDomain(); }, [status, id]);
+  useEffect(() => { if (status === "authenticated") { fetchDomain(); fetchGroups(); } }, [status, id]);
   useEffect(() => { if (!crawling) return; const i = setInterval(fetchDomain, 3000); return () => clearInterval(i); }, [crawling]);
   useEffect(() => { if (domain?.crawls?.[0]?.status !== "running") setCrawling(false); }, [domain]);
 
@@ -224,6 +230,12 @@ export default function DomainDetailPage({ params }: { params: Promise<{ id: str
       {selectedPage && <PageDetailPanel page={selectedPage} onClose={() => setSelectedPageId(null)} onDismissAlert={isAdmin ? handleDismissAlert : undefined} dismissedAlerts={dismissedAlerts} onCrawlPage={isAdmin ? async (url) => {
         await fetch("/api/crawl-page", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pageUrl: url, domainId: id }) });
         fetchDomain();
+      } : undefined} groups={groups} onAssignGroup={isAdmin ? async (pageId, groupId) => {
+        await fetch("/api/groups/members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pageId, groupId }) });
+        fetchDomain(); fetchGroups();
+      } : undefined} onRemoveFromGroup={isAdmin ? async (pageId) => {
+        await fetch(`/api/groups/members?pageId=${pageId}`, { method: "DELETE" });
+        fetchDomain(); fetchGroups();
       } : undefined} />}
     </div>
   );

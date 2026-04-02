@@ -12,6 +12,7 @@ interface PageNode {
   id: string; url: string; title: string | null; statusCode: number | null;
   responseTime: number | null; parentPageId: string | null;
   linksFrom: { href: string; toPageId: string | null }[];
+  groupMembers?: { group: { id: string; name: string; color: string } }[];
 }
 
 interface SiteTreeGraphProps { pages: PageNode[]; onNodeClick: (pageId: string) => void; }
@@ -127,15 +128,20 @@ function buildHorizontalTreeLayout(pages: PageNode[]) {
     const mySize = subtreeSize.get(nodeId) || { w: NODE_W, h: NODE_H };
     const nodeY = y + mySize.h / 2 - NODE_H / 2;
 
+    const groupColor = page.groupMembers?.[0]?.group?.color || null;
+
     nodes.push({
       id: nodeId,
       position: { x, y: nodeY },
       data: {
         label: (
-          <div className="text-center px-2 py-1">
-            <div className="text-[11px] font-semibold truncate" style={{ color: colors.text }}>{truncLabel}</div>
-            <div className="text-[9px] mt-0.5 opacity-80" style={{ color: colors.text }}>
-              {page.statusCode === null ? "Pendente" : page.statusCode === 0 ? "ERR" : `${page.statusCode} | ${page.responseTime || "?"}ms`}
+          <div className="w-full h-full relative overflow-hidden rounded-[10px]">
+            {groupColor && <div className="absolute top-0 left-0 right-0 h-[6px]" style={{ backgroundColor: groupColor }} />}
+            <div className={`text-center px-2 flex flex-col items-center justify-center h-full ${groupColor ? "pt-1" : ""}`}>
+              <div className="text-[11px] font-semibold truncate w-full" style={{ color: colors.text }}>{truncLabel}</div>
+              <div className="text-[9px] mt-0.5 opacity-80" style={{ color: colors.text }}>
+                {page.statusCode === null ? "Pendente" : page.statusCode === 0 ? "ERR" : `${page.statusCode} | ${page.responseTime || "?"}ms`}
+              </div>
             </div>
           </div>
         ),
@@ -144,6 +150,7 @@ function buildHorizontalTreeLayout(pages: PageNode[]) {
         background: colors.bg, border: "none", borderRadius: "10px",
         width: NODE_W, height: NODE_H, display: "flex", alignItems: "center",
         justifyContent: "center", boxShadow: "0 3px 10px rgba(0,0,0,0.12)", cursor: "pointer",
+        padding: 0,
       },
     });
 
@@ -200,7 +207,7 @@ export default function SiteTreeGraph({ pages, onNodeClick }: SiteTreeGraphProps
 
   return (
     <div className="h-[700px] rounded-2xl overflow-hidden border border-gray-200 bg-white">
-      <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodeClick={handleNodeClick} fitView fitViewOptions={{ padding: 0.2 }} minZoom={0.05} maxZoom={2}>
+      <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodeClick={handleNodeClick} fitView fitViewOptions={{ padding: 0.2 }} minZoom={0.05} maxZoom={2} snapToGrid={true} snapGrid={[20, 20]}>
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e2e8f0" />
         <Controls showInteractive={false} className="!bg-white !border-gray-200 !rounded-xl !shadow-lg" />
         <MiniMap nodeColor={(node) => { const s = node.style as Record<string, string> | undefined; return s?.background || "#94a3b8"; }} className="!bg-gray-50 !border-gray-200 !rounded-xl" />
