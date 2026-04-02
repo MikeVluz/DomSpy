@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const pagesToDismiss = pages.filter((p) => {
       if (alertType === "broken_link") return p.statusCode !== null && (p.statusCode === 0 || p.statusCode >= 400);
-      if (alertType === "slow_page") return p.responseTime !== null && p.responseTime > 3000;
+      if (alertType === "slow_page") return p.responseTime !== null && p.responseTime > 2000;
       return false;
     });
 

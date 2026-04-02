@@ -1,34 +1,35 @@
 export type PageStatus = "ok" | "warning" | "error" | "info";
 
 export interface SiteNode {
-  id: string;
-  url: string;
-  title: string | null;
-  statusCode: number | null;
-  responseTime: number | null;
-  status: PageStatus;
-  parentId: string | null;
-  childCount: number;
+  id: string; url: string; title: string | null; statusCode: number | null;
+  responseTime: number | null; status: PageStatus; parentId: string | null; childCount: number;
 }
 
 export interface CrawlResult {
-  totalPages: number;
-  brokenLinks: number;
-  slowPages: number;
-  okPages: number;
-  warnings: number;
+  totalPages: number; brokenLinks: number; slowPages: number; okPages: number; warnings: number;
 }
 
-export function getPageStatus(
-  statusCode: number | null,
-  responseTime: number | null
-): PageStatus {
-  if (statusCode === null || statusCode === undefined) return "info"; // Pending
+export function getPageStatus(statusCode: number | null, responseTime: number | null): PageStatus {
+  if (statusCode === null || statusCode === undefined) return "info";
   if (statusCode === 0 || statusCode >= 400) return "error";
-  if (statusCode >= 300 || (responseTime && responseTime > 3000))
-    return "warning";
-  if (responseTime && responseTime > 1000) return "info";
+  if (statusCode >= 300 || (responseTime && responseTime > 2000)) return "warning";
+  if (responseTime && responseTime > 900) return "info";
   return "ok";
+}
+
+export function getStatusErrorMessage(statusCode: number | null): string {
+  if (statusCode === null) return "Pendente - aguardando verificacao";
+  if (statusCode === 0) return "Erro de conexao - o servidor nao respondeu. Verifique se a URL esta correta.";
+  if (statusCode === 403) return "Erro 403: O servidor recusou a conexao como medida de seguranca. Verifique as configuracoes do Cloudflare ou contate o administrador do dominio.";
+  if (statusCode === 404) return "Erro 404: Pagina nao encontrada. A URL pode ter sido removida ou alterada.";
+  if (statusCode === 500) return "Erro 500: Erro interno do servidor. O site pode estar com problemas temporarios.";
+  if (statusCode === 502) return "Erro 502: Gateway invalido. O servidor intermediario nao conseguiu processar a requisicao.";
+  if (statusCode === 503) return "Erro 503: Servico indisponivel. O site pode estar em manutencao.";
+  if (statusCode === 504) return "Erro 504: Tempo de resposta esgotado. O servidor demorou demais para responder.";
+  if (statusCode >= 400 && statusCode < 500) return `Erro ${statusCode}: Requisicao rejeitada pelo servidor.`;
+  if (statusCode >= 500) return `Erro ${statusCode}: Problema no servidor de destino.`;
+  if (statusCode >= 300 && statusCode < 400) return `Redirecionamento ${statusCode}: A pagina foi movida para outro endereco.`;
+  return `Status ${statusCode}`;
 }
 
 export const STATUS_COLORS = {

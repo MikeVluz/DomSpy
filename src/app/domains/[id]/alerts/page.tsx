@@ -45,7 +45,7 @@ export default function AlertsPage({ params }: { params: Promise<{ id: string }>
   }
 
   // 2. Slow pages
-  const slowPages = domain.pages.filter((p) => p.responseTime !== null && p.responseTime > 3000);
+  const slowPages = domain.pages.filter((p) => p.responseTime !== null && p.responseTime > 2000);
   if (slowPages.length > 0) {
     groups.push({
       category: "Paginas Lentas", icon: "Clock", color: "#E4A11B", bgColor: "#E4A11B",

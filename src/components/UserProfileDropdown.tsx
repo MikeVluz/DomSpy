@@ -83,7 +83,7 @@ export default function UserProfileDropdown() {
               className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
             >
               <UsersIcon className="w-4 h-4" />
-              Gerenciar Usu\u00e1rios
+              Gerenciar Usuarios
             </button>
           )}
 

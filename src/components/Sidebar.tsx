@@ -13,7 +13,7 @@ import UserProfileDropdown from "./UserProfileDropdown";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Squares2X2Icon },
-  { href: "/domains", label: "Dom\u00ednios", icon: GlobeAltIcon },
+  { href: "/domains", label: "Domínios", icon: GlobeAltIcon },
 ];
 
 export default function Sidebar() {
@@ -32,7 +32,7 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">DomSpy</h1>
-            <p className="text-xs text-white/50">Monitor de Dom\u00ednios</p>
+            <p className="text-xs text-white/50">Monitor de Domínios</p>
           </div>
         </div>
       </div>
@@ -72,7 +72,7 @@ export default function Sidebar() {
             }`}
           >
             <UsersIcon className="w-5 h-5" />
-            Usu\u00e1rios
+            Usuários
           </Link>
         )}
       </nav>

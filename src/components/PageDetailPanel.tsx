@@ -1,11 +1,11 @@
 "use client";
-import { getPageStatus, STATUS_COLORS } from "@/types";
+import { getPageStatus, STATUS_COLORS, getStatusErrorMessage } from "@/types";
 import { XMarkIcon, GlobeAltIcon, ClockIcon, DocumentTextIcon, LinkIcon, ExclamationCircleIcon, CheckCircleIcon, EyeSlashIcon, ArrowTopRightOnSquareIcon, PhotoIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
 
 interface PageDetail { id: string; url: string; title: string | null; description: string | null; h1: string | null; headings: string | null; bodyText: string | null; images: string | null; statusCode: number | null; responseTime: number | null; linksFrom: { href: string; statusCode: number | null; isExternal: boolean; anchor: string | null; }[]; }
 interface PageDetailPanelProps { page: PageDetail; onClose: () => void; onDismissAlert?: (pageId: string, alertType: string) => void; dismissedAlerts?: Set<string>; }
 
-function getTimeCategory(ms: number | null) { if (ms === null) return { label: "N/A", color: "#6B7280" }; if (ms < 1000) return { label: "Otimo", color: "#14A44D" }; if (ms < 3000) return { label: "Aceitavel", color: "#E4A11B" }; return { label: "Ruim", color: "#DC4C64" }; }
+function getTimeCategory(ms: number | null) { if (ms === null) return { label: "N/A", color: "#6B7280" }; if (ms < 900) return { label: "Otimo", color: "#14A44D" }; if (ms < 2000) return { label: "Aceitavel", color: "#E4A11B" }; return { label: "Ruim", color: "#DC4C64" }; }
 
 export default function PageDetailPanel({ page, onClose, onDismissAlert, dismissedAlerts = new Set() }: PageDetailPanelProps) {
   const status = getPageStatus(page.statusCode, page.responseTime);
@@ -39,6 +39,7 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">Status</span>
             <span className="text-xl font-bold text-[#1a1a2e]">{page.statusCode === null ? "Pendente" : page.statusCode === 0 ? "ERR" : page.statusCode}</span>
+            {page.statusCode !== null && page.statusCode !== 200 && <div className="text-[10px] text-gray-500 mt-1 max-w-[150px]">{getStatusErrorMessage(page.statusCode)}</div>}
           </div>
           <div className="w-px h-8 bg-gray-200" />
           <div className="flex items-center gap-2">
@@ -84,7 +85,7 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
         <div>
           <div className="text-xs text-gray-400 mb-2">Escala de Tempo de Carregamento</div>
           <div className="flex items-center gap-1 h-3 rounded-full overflow-hidden"><div className="h-full flex-1 bg-[#14A44D] rounded-l-full" /><div className="h-full flex-1 bg-[#E4A11B]" /><div className="h-full flex-1 bg-[#DC4C64] rounded-r-full" /></div>
-          <div className="flex justify-between text-xs text-gray-400 mt-1.5"><span>0ms</span><span className="text-[#14A44D] font-medium">Otimo (&lt;1s)</span><span className="text-[#E4A11B] font-medium">Aceitavel (1-3s)</span><span className="text-[#DC4C64] font-medium">Ruim (&gt;3s)</span></div>
+          <div className="flex justify-between text-xs text-gray-400 mt-1.5"><span>0ms</span><span className="text-[#14A44D] font-medium">Otimo (&lt;900ms)</span><span className="text-[#E4A11B] font-medium">Aceitavel (0.9-2s)</span><span className="text-[#DC4C64] font-medium">Ruim (&gt;2s)</span></div>
         </div>
 
         <div>

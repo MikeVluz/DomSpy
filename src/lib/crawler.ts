@@ -119,7 +119,7 @@ export async function crawlDomain(domainId: string, domainUrl: string, options: 
   if (sitemapUrls.length > 0) {
     for (const url of sitemapUrls.slice(0, maxPages)) {
       const pd = await fetchPage(url, timeout); if (!pd) continue;
-      totalPages++; if (pd.statusCode === 0 || pd.statusCode >= 400) brokenLinks++; if (pd.responseTime > 3000) slowPages++;
+      totalPages++; if (pd.statusCode === 0 || pd.statusCode >= 400) brokenLinks++; if (pd.responseTime > 2000) slowPages++;
       const page = await prisma.page.create({ data: { url: pd.url, domainId, statusCode: pd.statusCode, responseTime: pd.responseTime, title: pd.title, description: pd.description, h1: pd.h1, headings: pd.headings, bodyText: pd.bodyText, images: pd.images, contentHash: pd.contentHash, crawlId: crawlSession.id } });
       for (const link of pd.links) { await prisma.link.create({ data: { fromPageId: page.id, href: link.href, isExternal: link.isExternal, isRedirect: false, anchor: link.anchor } }); }
       await prisma.crawlSession.update({ where: { id: crawlSession.id }, data: { totalPages, brokenLinks, slowPages } });
@@ -136,7 +136,7 @@ export async function crawlDomain(domainId: string, domainUrl: string, options: 
       const { url, depth, parentId } = queue.shift()!;
       const pd = await fetchPage(url, timeout); if (!pd) continue;
       if (totalPages === 0 && pd.statusCode === 403 && pd.title?.includes("Just a moment")) { await prisma.crawlSession.update({ where: { id: crawlSession.id }, data: { status: "blocked", finishedAt: new Date() } }); await prisma.domain.update({ where: { id: domainId }, data: { lastCrawlAt: new Date() } }); return crawlSession.id; }
-      totalPages++; if (pd.statusCode === 0 || pd.statusCode >= 400) brokenLinks++; if (pd.responseTime > 3000) slowPages++;
+      totalPages++; if (pd.statusCode === 0 || pd.statusCode >= 400) brokenLinks++; if (pd.responseTime > 2000) slowPages++;
       const page = await prisma.page.create({ data: { url: pd.url, domainId, statusCode: pd.statusCode, responseTime: pd.responseTime, title: pd.title, description: pd.description, h1: pd.h1, headings: pd.headings, bodyText: pd.bodyText, images: pd.images, contentHash: pd.contentHash, parentPageId: parentId, crawlId: crawlSession.id } });
       for (const link of pd.links) {
         await prisma.link.create({ data: { fromPageId: page.id, href: link.href, isExternal: link.isExternal, isRedirect: false, anchor: link.anchor } });
