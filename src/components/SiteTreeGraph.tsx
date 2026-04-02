@@ -143,7 +143,7 @@ function buildHorizontalTreeLayout(pages: PageNode[]) {
                 ))}
               </div>
             )}
-            <div className={`text-center px-2 flex flex-col items-center justify-center h-full ${groupColor ? "pt-1" : ""}`}>
+            <div className={`text-center px-2 flex flex-col items-center justify-center h-full ${groupColors.length > 0 ? "pt-1" : ""}`}>
               <div className="text-[11px] font-semibold truncate w-full" style={{ color: colors.text }}>{truncLabel}</div>
               <div className="text-[9px] mt-0.5 opacity-80" style={{ color: colors.text }}>
                 {page.statusCode === null ? "Pendente" : page.statusCode === 0 ? "ERR" : `${page.statusCode} | ${page.responseTime || "?"}ms`}
