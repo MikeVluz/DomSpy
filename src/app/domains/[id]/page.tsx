@@ -10,7 +10,7 @@ import {
   ArrowLeftIcon, PlayIcon, ArrowDownTrayIcon, CheckCircleIcon,
   ExclamationTriangleIcon, XCircleIcon, SignalIcon, ArrowPathIcon,
   ClockIcon, PlusIcon, LinkIcon, PencilIcon, CheckIcon,
-  BellAlertIcon, EyeIcon, CodeBracketIcon,
+  BellAlertIcon, EyeIcon, CodeBracketIcon, SwatchIcon,
 } from "@heroicons/react/24/outline";
 
 interface PageData {
@@ -159,6 +159,9 @@ export default function DomainDetailPage({ params }: { params: Promise<{ id: str
 
             {/* Action buttons */}
             <div className="flex items-center gap-2">
+              <button onClick={() => router.push(`/groups?domainId=${id}`)} className="px-4 py-2 bg-[#8B5CF6]/10 text-[#8B5CF6] rounded-xl text-sm font-medium hover:bg-[#8B5CF6]/20 flex items-center gap-1.5">
+                <SwatchIcon className="w-4 h-4" /> Grupos
+              </button>
               <button onClick={() => router.push(`/domains/${id}/alerts`)} className="px-4 py-2 bg-[#E4A11B]/10 text-[#E4A11B] rounded-xl text-sm font-medium hover:bg-[#E4A11B]/20 flex items-center gap-1.5">
                 <BellAlertIcon className="w-4 h-4" /> Alertas
               </button>
