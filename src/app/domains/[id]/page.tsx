@@ -110,10 +110,10 @@ export default function DomainDetailPage({ params }: { params: Promise<{ id: str
   if (!domain) return (<div className="flex min-h-screen"><Sidebar /><main className="flex-1 ml-64 p-8"><p className="text-gray-500">Dominio nao encontrado.</p></main></div>);
 
   const latestCrawl = domain.crawls[0];
-  const totalPages = latestCrawl?.totalPages || 0;
-  const brokenLinks = latestCrawl?.brokenLinks || 0;
-  const slowPages = latestCrawl?.slowPages || 0;
-  const okPages = Math.max(0, totalPages - brokenLinks - slowPages);
+  const totalPages = domain.pages.length;
+  const brokenLinks = domain.pages.filter((p) => p.statusCode !== null && (p.statusCode === 0 || p.statusCode >= 400)).length;
+  const slowPages = domain.pages.filter((p) => p.responseTime !== null && p.responseTime > 900).length;
+  const okPages = domain.pages.filter((p) => p.statusCode !== null && p.statusCode >= 200 && p.statusCode < 300 && (p.responseTime === null || p.responseTime <= 900)).length;
   const selectedPage = selectedPageId ? domain.pages.find((p) => p.id === selectedPageId) : null;
 
   return (
