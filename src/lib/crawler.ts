@@ -1,5 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
+import type { AnyNode, Element as DomElement } from "domhandler";
 import { prisma } from "./prisma";
 
 interface CrawlOptions { maxPages?: number; maxDepth?: number; timeout?: number; }
@@ -60,13 +61,13 @@ function parseHtml(html: string, pageUrl: string): Omit<PageData, "statusCode" |
     if ($(tag).length > 0) { hasSemantic = true; break; }
   }
 
-  function walkNode(node: cheerio.AnyNode, output: string[]): void {
+  function walkNode(node: AnyNode, output: string[]): void {
     if (node.type === "text") {
       const text = (node as unknown as { data: string }).data || "";
       const clean = text.replace(/\s+/g, " ");
       if (clean.trim()) output.push(clean);
     } else if (node.type === "tag") {
-      const el = node as cheerio.Element;
+      const el = node as DomElement;
       const tagName = el.tagName?.toLowerCase();
 
       // Skip hidden elements
@@ -90,7 +91,7 @@ function parseHtml(html: string, pageUrl: string): Omit<PageData, "statusCode" |
       if (blockTags.includes(tagName)) output.push("\n");
 
       // Recurse into children
-      const children = $(el).contents().toArray();
+      const children = $(el).contents().toArray() as unknown as AnyNode[];
       for (const child of children) { walkNode(child, output); }
 
       if (blockTags.includes(tagName)) output.push("\n");
