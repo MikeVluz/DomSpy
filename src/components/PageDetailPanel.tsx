@@ -12,6 +12,23 @@ function getTimeCategory(ms: number | null) { if (ms === null) return { label: "
 export default function PageDetailPanel({ page, onClose, onDismissAlert, dismissedAlerts = new Set(), onCrawlPage, groups = [], onAssignGroup, onRemoveFromGroup, onRemoveFromSpecificGroup }: PageDetailPanelProps) {
   const [panelSearch, setPanelSearch] = useState("");
   const [panelSearchExact, setPanelSearchExact] = useState(false);
+  const [activeSearchSection, setActiveSearchSection] = useState<string | null>(null);
+
+  // Highlight search matches in text with orange background
+  const highlightText = (text: string, section: string) => {
+    if (!panelSearch.trim() || activeSearchSection !== section) return text;
+    const q = panelSearchExact ? panelSearch : panelSearch.toLowerCase();
+    const flags = panelSearchExact ? "g" : "gi";
+    const escaped = panelSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escaped})`, flags);
+    const parts = text.split(regex);
+    if (parts.length <= 1) return text;
+    return parts.map((part, i) => {
+      const isMatch = panelSearchExact ? part === panelSearch : part.toLowerCase() === panelSearch.toLowerCase();
+      return isMatch ? <mark key={i} className="bg-[#F97316] text-white rounded px-0.5">{part}</mark> : part;
+    });
+  };
+
   const currentGroups = page.groupMembers?.map((m) => m.group) || [];
   const status = getPageStatus(page.statusCode, page.responseTime);
   const colors = STATUS_COLORS[status];
@@ -96,13 +113,14 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
       <div className="px-10 py-3 border-b border-gray-100">
         <div className="relative">
           <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input type="text" value={panelSearch} onChange={(e) => setPanelSearch(e.target.value)} placeholder="Buscar nesta pagina..." className="w-full pl-9 pr-20 py-2 border border-gray-200 rounded-lg text-xs focus:border-[#3B82F6] focus:outline-none text-[#1a1a2e]" />
+          <input type="text" value={panelSearch} onChange={(e) => { setPanelSearch(e.target.value); setActiveSearchSection(null); }} placeholder="Buscar nesta pagina..." className="w-full pl-9 pr-20 py-2 border border-gray-200 rounded-lg text-xs focus:border-[#3B82F6] focus:outline-none text-[#1a1a2e]" />
           <label className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
             <input type="checkbox" checked={panelSearchExact} onChange={(e) => setPanelSearchExact(e.target.checked)} className="rounded border-gray-300 w-3 h-3" /> Exata
           </label>
         </div>
         {panelSearch.trim() && (() => {
           const q = panelSearchExact ? panelSearch : panelSearch.toLowerCase();
+          const sectionMap: Record<string, string> = { "Title": "section-title", "H1": "section-h1", "Meta Description": "section-description", "Texto da Pagina": "section-body", "Cabecalhos": "section-headings", "Links": "section-links" };
           const matches: string[] = [];
           const check = (text: string | null, label: string) => {
             if (!text) return;
@@ -112,9 +130,18 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
           check(page.title, "Title"); check(page.h1, "H1"); check(page.description, "Meta Description");
           check(page.bodyText, "Texto da Pagina"); check(page.headings, "Cabecalhos");
           page.linksFrom.forEach((l) => { const t = panelSearchExact ? l.href : l.href.toLowerCase(); if (t.includes(q)) matches.push("Links"); });
-          return matches.length > 0 ? (
+          const unique = [...new Set(matches)];
+          return unique.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-1">
-              {[...new Set(matches)].map((m) => <span key={m} className="text-[10px] px-2 py-0.5 rounded-full bg-[#3B82F6]/10 text-[#3B82F6] font-medium">{m}</span>)}
+              {unique.map((m) => (
+                <button key={m} onClick={() => {
+                  setActiveSearchSection(m);
+                  const el = document.getElementById(sectionMap[m]);
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }} className={`text-[10px] px-2 py-0.5 rounded-full font-medium cursor-pointer transition-colors ${activeSearchSection === m ? "bg-[#F97316] text-white" : "bg-[#3B82F6]/10 text-[#3B82F6] hover:bg-[#3B82F6]/20"}`}>
+                  {m}
+                </button>
+              ))}
             </div>
           ) : <div className="mt-2 text-[10px] text-gray-400">Nenhum resultado para &quot;{panelSearch}&quot;</div>;
         })()}
@@ -131,20 +158,20 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
         <div>
           <h4 className="text-base font-semibold text-[#1a1a2e] flex items-center gap-2 mb-5"><DocumentTextIcon className="w-5 h-5" /> Estrutura de Conteudo</h4>
           <div className="space-y-4">
-            <div className="bg-gray-50 rounded-xl p-5"><div className="text-xs text-gray-400 mb-2">Title</div><div className="text-base text-[#1a1a2e] leading-relaxed">{page.title || <span className="text-[#DC4C64]">Nao encontrado</span>}</div></div>
-            <div className="bg-gray-50 rounded-xl p-5"><div className="text-xs text-gray-400 mb-2">H1</div><div className="text-base text-[#1a1a2e] leading-relaxed">{page.h1 || <span className="text-[#DC4C64]">Nao encontrado</span>}</div></div>
-            <div className="bg-gray-50 rounded-xl p-5"><div className="text-xs text-gray-400 mb-2">Meta Description</div><div className="text-base text-[#1a1a2e] leading-relaxed">{page.description || <span className="text-[#DC4C64]">Nao encontrada</span>}</div></div>
+            <div id="section-title" className="bg-gray-50 rounded-xl p-5"><div className="text-xs text-gray-400 mb-2">Title</div><div className="text-base text-[#1a1a2e] leading-relaxed">{page.title ? highlightText(page.title, "Title") : <span className="text-[#DC4C64]">Nao encontrado</span>}</div></div>
+            <div id="section-h1" className="bg-gray-50 rounded-xl p-5"><div className="text-xs text-gray-400 mb-2">H1</div><div className="text-base text-[#1a1a2e] leading-relaxed">{page.h1 ? highlightText(page.h1, "H1") : <span className="text-[#DC4C64]">Nao encontrado</span>}</div></div>
+            <div id="section-description" className="bg-gray-50 rounded-xl p-5"><div className="text-xs text-gray-400 mb-2">Meta Description</div><div className="text-base text-[#1a1a2e] leading-relaxed">{page.description ? highlightText(page.description, "Meta Description") : <span className="text-[#DC4C64]">Nao encontrada</span>}</div></div>
           </div>
         </div>
 
         {page.headings && (() => { try { const hdgs = JSON.parse(page.headings) as { tag: string; text: string }[]; if (hdgs.length === 0) return null; return (
-          <div>
+          <div id="section-headings">
             <h4 className="text-base font-semibold text-[#1a1a2e] flex items-center gap-2 mb-5"><DocumentTextIcon className="w-5 h-5" /> Cabecalhos da Pagina ({hdgs.length})</h4>
             <div className="space-y-2">
               {hdgs.map((h, i) => (
                 <div key={i} className="bg-gray-50 rounded-xl px-5 py-3 text-sm text-[#1a1a2e] flex items-start gap-3">
                   <span className={`shrink-0 text-xs font-bold uppercase mt-0.5 ${h.tag === "h2" ? "text-[#3B82F6]" : h.tag === "h3" ? "text-[#8B5CF6]" : "text-[#6B7280]"}`}>{h.tag}</span>
-                  <span className={`leading-relaxed ${h.tag === "h3" ? "pl-3" : h.tag === "h4" ? "pl-8" : ""}`}>{h.text}</span>
+                  <span className={`leading-relaxed ${h.tag === "h3" ? "pl-3" : h.tag === "h4" ? "pl-8" : ""}`}>{highlightText(h.text, "Cabecalhos")}</span>
                 </div>
               ))}
             </div>
@@ -183,7 +210,7 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
                   elements.push(<div key={`img-${i}`}>{imgRef(imgs[imgIdx], imgIdx)}</div>);
                 }
               } else if (part.trim()) {
-                elements.push(<p key={`text-${i}`} className="whitespace-pre-wrap">{part}</p>);
+                elements.push(<p key={`text-${i}`} className="whitespace-pre-wrap">{highlightText(part, "Texto da Pagina")}</p>);
               }
             }
 
@@ -193,11 +220,11 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
           return (
             <>
               {page.bodyText && (
-                <div>
+                <div id="section-body">
                   <h4 className="text-base font-semibold text-[#1a1a2e] flex items-center gap-2 mb-5"><DocumentTextIcon className="w-5 h-5" /> Estrutura da Pagina</h4>
                   <div className="bg-gray-50 rounded-xl p-6">
                     {page.bodyText.includes("[IMG:") ? renderBodyWithImages(page.bodyText) : (
-                      <pre className="text-sm text-[#1a1a2e] whitespace-pre-wrap font-sans leading-loose">{page.bodyText}</pre>
+                      <pre className="text-sm text-[#1a1a2e] whitespace-pre-wrap font-sans leading-loose">{highlightText(page.bodyText, "Texto da Pagina")}</pre>
                     )}
                   </div>
                 </div>
@@ -226,14 +253,14 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
           );
         })()}
 
-        <div>
+        <div id="section-links">
           <h4 className="text-base font-semibold text-[#1a1a2e] flex items-center gap-2 mb-5"><LinkIcon className="w-5 h-5" /> Links Internos ({internalLinks.length})</h4>
           {internalLinks.length > 0 ? (
             <div className="space-y-2">
               {internalLinks.map((link, i) => { const broken = link.statusCode && link.statusCode >= 400; return (
                 <a key={i} href={link.href} target="_blank" rel="noopener noreferrer" className={`block px-5 py-3 rounded-xl text-sm break-all hover:opacity-80 flex items-center gap-2 ${broken ? "bg-[#DC4C64]/5 text-[#DC4C64]" : "bg-gray-50 text-[#3B82F6]"}`}>
                   <ArrowTopRightOnSquareIcon className="w-4 h-4 shrink-0" />
-                  <span className="flex-1">{link.anchor || link.href}</span>
+                  <span className="flex-1">{highlightText(link.anchor || link.href, "Links")}</span>
                   {link.statusCode && <span className="text-gray-400 shrink-0 text-xs">[{link.statusCode}]</span>}
                 </a>
               ); })}

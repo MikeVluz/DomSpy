@@ -44,11 +44,30 @@ export default function FunnelDetailPage({ params }: { params: Promise<{ id: str
   const [search, setSearch] = useState("");
   const [linkFunnelId, setLinkFunnelId] = useState("");
   const [dropdownPageId, setDropdownPageId] = useState<string | null>(null);
+  const [allPages, setAllPages] = useState<{ id: string; url: string; title: string | null; statusCode: number | null; responseTime: number | null; domainId: string; domainName: string }[]>([]);
+  const [pageSearch, setPageSearch] = useState("");
+  const [showPageBrowser, setShowPageBrowser] = useState(false);
 
   const isAdmin = session?.user?.role === "super_admin" || session?.user?.role === "admin";
 
   const fetchFunnel = () => { fetch(`/api/funnels/${id}`).then((r) => r.json()).then(setFunnel).finally(() => setLoading(false)); };
   const fetchAllFunnels = () => { fetch("/api/funnels").then((r) => r.json()).then((d) => { if (Array.isArray(d)) setAllFunnels(d.map((f: AllFunnel) => ({ id: f.id, name: f.name, color: f.color }))); }); };
+  const fetchAllPages = () => {
+    fetch("/api/domains").then((r) => r.json()).then(async (domains) => {
+      if (!Array.isArray(domains)) return;
+      const pages: typeof allPages = [];
+      for (const domain of domains) {
+        const res = await fetch(`/api/domains/${domain.id}`);
+        const data = await res.json();
+        if (data.pages) {
+          for (const p of data.pages) {
+            pages.push({ id: p.id, url: p.url, title: p.title, statusCode: p.statusCode, responseTime: p.responseTime, domainId: domain.id, domainName: domain.name });
+          }
+        }
+      }
+      setAllPages(pages);
+    });
+  };
 
   useEffect(() => { fetchFunnel(); fetchAllFunnels(); }, [id]);
 
@@ -165,10 +184,65 @@ export default function FunnelDetailPage({ params }: { params: Promise<{ id: str
             <textarea value={bulkUrls} onChange={(e) => setBulkUrls(e.target.value)} placeholder="Cole URLs (uma por linha) - devem ser paginas ja escaneadas" className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-[#14A44D] focus:outline-none text-xs text-[#1a1a2e] h-20 resize-y font-mono" />
             <div className="flex items-center justify-between mt-2">
               <span className="text-xs text-gray-400">{importResult || (bulkUrls.trim() ? `${bulkUrls.split("\n").filter((u) => u.trim()).length} URLs` : "URLs de paginas ja escaneadas")}</span>
-              <button onClick={handleBulkImport} disabled={importing || !bulkUrls.trim()} className="px-4 py-2 bg-[#14A44D] text-white rounded-lg text-xs font-semibold hover:opacity-90 disabled:opacity-50 flex items-center gap-1">
-                {importing ? <ArrowPathIcon className="w-3 h-3 animate-spin" /> : <PlusIcon className="w-3 h-3" />} Adicionar
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { if (!showPageBrowser) fetchAllPages(); setShowPageBrowser(!showPageBrowser); }} className="px-4 py-2 bg-[#3B82F6]/10 text-[#3B82F6] rounded-lg text-xs font-semibold hover:bg-[#3B82F6]/20 flex items-center gap-1">
+                  <MagnifyingGlassIcon className="w-3 h-3" /> {showPageBrowser ? "Fechar Lista" : "Selecionar da Lista"}
+                </button>
+                <button onClick={handleBulkImport} disabled={importing || !bulkUrls.trim()} className="px-4 py-2 bg-[#14A44D] text-white rounded-lg text-xs font-semibold hover:opacity-90 disabled:opacity-50 flex items-center gap-1">
+                  {importing ? <ArrowPathIcon className="w-3 h-3 animate-spin" /> : <PlusIcon className="w-3 h-3" />} Adicionar
+                </button>
+              </div>
             </div>
+
+            {/* Page Browser - clickable list of all scanned pages */}
+            {showPageBrowser && (
+              <div className="mt-4 border-2 border-[#3B82F6]/20 rounded-xl overflow-hidden">
+                <div className="p-3 bg-[#3B82F6]/5 border-b border-[#3B82F6]/10">
+                  <div className="relative">
+                    <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input type="text" value={pageSearch} onChange={(e) => setPageSearch(e.target.value)} placeholder="Filtrar paginas escaneadas..." className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-xs focus:border-[#3B82F6] focus:outline-none text-[#1a1a2e]" />
+                  </div>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto divide-y divide-gray-50">
+                  {allPages.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-xs text-gray-400">Carregando paginas...</div>
+                  ) : (() => {
+                    const funnelPageIds = new Set(funnel.pages.map((fp) => fp.page.id));
+                    const filtered = pageSearch.trim()
+                      ? allPages.filter((p) => {
+                          const q = pageSearch.toLowerCase();
+                          return p.url.toLowerCase().includes(q) || p.title?.toLowerCase().includes(q) || p.domainName.toLowerCase().includes(q);
+                        })
+                      : allPages;
+                    return filtered.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-xs text-gray-400">Nenhuma pagina encontrada</div>
+                    ) : filtered.map((p) => {
+                      const inFunnel = funnelPageIds.has(p.id);
+                      const status = getPageStatus(p.statusCode, p.responseTime);
+                      const colors = STATUS_COLORS[status];
+                      return (
+                        <button key={p.id} disabled={inFunnel} onClick={async () => {
+                          await fetch("/api/funnels/members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ funnelId: id, pageId: p.id }) });
+                          fetchFunnel();
+                        }} className={`w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors ${inFunnel ? "opacity-40 cursor-not-allowed bg-gray-50" : "hover:bg-[#14A44D]/5 cursor-pointer"}`}>
+                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colors.bg }} />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-medium text-[#1a1a2e] truncate">{p.title || p.url}</div>
+                            <div className="text-[10px] text-gray-400 truncate">{p.url}</div>
+                          </div>
+                          <span className="text-[10px] text-gray-400 shrink-0">{p.domainName}</span>
+                          {inFunnel ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">Ja adicionada</span>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#14A44D]/10 text-[#14A44D] font-medium">+ Adicionar</span>
+                          )}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
