@@ -66,6 +66,7 @@ model Page {
   crawl           CrawlSession?    @relation(fields: [crawlId], references: [id])
   dismissedAlerts DismissedAlert[]
   groupMembers    PageGroupMember[]
+  funnelPages     FunnelPage[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -130,4 +131,37 @@ model PageGroupMember {
   group     PageGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([pageId, groupId])
+}
+
+model Funnel {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  color       String       @default("#3B82F6")
+  pages       FunnelPage[]
+  linksFrom   FunnelLink[] @relation("FunnelFrom")
+  linksTo     FunnelLink[] @relation("FunnelTo")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model FunnelPage {
+  id        String  @id @default(cuid())
+  funnelId  String
+  funnel    Funnel  @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  pageId    String
+  page      Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  position  Int     @default(0)
+
+  @@unique([funnelId, pageId])
+}
+
+model FunnelLink {
+  id           String @id @default(cuid())
+  fromFunnelId String
+  fromFunnel   Funnel @relation("FunnelFrom", fields: [fromFunnelId], references: [id], onDelete: Cascade)
+  toFunnelId   String
+  toFunnel     Funnel @relation("FunnelTo", fields: [toFunnelId], references: [id], onDelete: Cascade)
+
+  @@unique([fromFunnelId, toFunnelId])
 }

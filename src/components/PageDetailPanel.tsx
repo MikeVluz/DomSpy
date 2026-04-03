@@ -1,7 +1,7 @@
 "use client";
 import { getPageStatus, STATUS_COLORS, getStatusErrorMessage, getStatusLabel } from "@/types";
 import { useState } from "react";
-import { XMarkIcon, GlobeAltIcon, ClockIcon, DocumentTextIcon, LinkIcon, ExclamationCircleIcon, CheckCircleIcon, EyeSlashIcon, ArrowTopRightOnSquareIcon, PhotoIcon, CodeBracketIcon, ArrowPathIcon, SwatchIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, GlobeAltIcon, ClockIcon, DocumentTextIcon, LinkIcon, ExclamationCircleIcon, CheckCircleIcon, EyeSlashIcon, ArrowTopRightOnSquareIcon, PhotoIcon, CodeBracketIcon, ArrowPathIcon, SwatchIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 interface PageDetail { id: string; url: string; title: string | null; description: string | null; h1: string | null; headings: string | null; bodyText: string | null; images: string | null; statusCode: number | null; responseTime: number | null; linksFrom: { href: string; statusCode: number | null; isExternal: boolean; anchor: string | null; }[]; groupMembers?: { group: { id: string; name: string; color: string } }[]; }
 interface GroupOption { id: string; name: string; color: string; }
@@ -10,6 +10,8 @@ interface PageDetailPanelProps { page: PageDetail; onClose: () => void; onDismis
 function getTimeCategory(ms: number | null) { if (ms === null) return { label: "N/A", color: "#6B7280" }; if (ms < 900) return { label: "Otimo", color: "#14A44D" }; if (ms < 2000) return { label: "Aceitavel", color: "#E4A11B" }; return { label: "Ruim", color: "#DC4C64" }; }
 
 export default function PageDetailPanel({ page, onClose, onDismissAlert, dismissedAlerts = new Set(), onCrawlPage, groups = [], onAssignGroup, onRemoveFromGroup, onRemoveFromSpecificGroup }: PageDetailPanelProps) {
+  const [panelSearch, setPanelSearch] = useState("");
+  const [panelSearchExact, setPanelSearchExact] = useState(false);
   const currentGroups = page.groupMembers?.map((m) => m.group) || [];
   const status = getPageStatus(page.statusCode, page.responseTime);
   const colors = STATUS_COLORS[status];
@@ -88,6 +90,34 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
             <span className="text-xs font-medium text-[#14A44D]">Nenhum problema encontrado</span>
           </div>
         )}
+      </div>
+
+      {/* Search within page */}
+      <div className="px-10 py-3 border-b border-gray-100">
+        <div className="relative">
+          <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input type="text" value={panelSearch} onChange={(e) => setPanelSearch(e.target.value)} placeholder="Buscar nesta pagina..." className="w-full pl-9 pr-20 py-2 border border-gray-200 rounded-lg text-xs focus:border-[#3B82F6] focus:outline-none text-[#1a1a2e]" />
+          <label className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
+            <input type="checkbox" checked={panelSearchExact} onChange={(e) => setPanelSearchExact(e.target.checked)} className="rounded border-gray-300 w-3 h-3" /> Exata
+          </label>
+        </div>
+        {panelSearch.trim() && (() => {
+          const q = panelSearchExact ? panelSearch : panelSearch.toLowerCase();
+          const matches: string[] = [];
+          const check = (text: string | null, label: string) => {
+            if (!text) return;
+            const t = panelSearchExact ? text : text.toLowerCase();
+            if (t.includes(q)) matches.push(label);
+          };
+          check(page.title, "Title"); check(page.h1, "H1"); check(page.description, "Meta Description");
+          check(page.bodyText, "Texto da Pagina"); check(page.headings, "Cabecalhos");
+          page.linksFrom.forEach((l) => { const t = panelSearchExact ? l.href : l.href.toLowerCase(); if (t.includes(q)) matches.push("Links"); });
+          return matches.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {[...new Set(matches)].map((m) => <span key={m} className="text-[10px] px-2 py-0.5 rounded-full bg-[#3B82F6]/10 text-[#3B82F6] font-medium">{m}</span>)}
+            </div>
+          ) : <div className="mt-2 text-[10px] text-gray-400">Nenhum resultado para &quot;{panelSearch}&quot;</div>;
+        })()}
       </div>
 
       <div className="px-10 py-8 space-y-10">
