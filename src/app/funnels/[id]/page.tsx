@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import StatusCard from "@/components/StatusCard";
 import SiteTreeGraph from "@/components/SiteTreeGraph";
+import PageDetailPanel from "@/components/PageDetailPanel";
 import { getPageStatus, STATUS_COLORS, getStatusLabel } from "@/types";
 import {
   ArrowLeftIcon, FunnelIcon, PlusIcon, TrashIcon, ArrowPathIcon, LinkIcon,
@@ -45,6 +46,9 @@ export default function FunnelDetailPage({ params }: { params: Promise<{ id: str
   const [search, setSearch] = useState("");
   const [linkFunnelId, setLinkFunnelId] = useState("");
   const [dropdownPageId, setDropdownPageId] = useState<string | null>(null);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  const [selectedPageData, setSelectedPageData] = useState<Record<string, unknown> | null>(null);
+  const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   const [allPages, setAllPages] = useState<{ id: string; url: string; title: string | null; statusCode: number | null; responseTime: number | null; domainId: string; domainName: string }[]>([]);
   const [pageSearch, setPageSearch] = useState("");
   const [showPageBrowser, setShowPageBrowser] = useState(false);
@@ -171,9 +175,19 @@ export default function FunnelDetailPage({ params }: { params: Promise<{ id: str
                 groupMembers: fp.page.groupMembers,
               }))}
               domainId={`funnel-${id}`}
+              focusNodeId={selectedPageId || undefined}
               onNodeClick={(pageId) => {
-                const page = funnel.pages.find((fp) => fp.page.id === pageId);
-                if (page) router.push(`/domains/${page.page.domain.id}?focusPage=${pageId}`);
+                setSelectedPageId(pageId);
+                setSelectedPageData(null);
+                const fp = funnel.pages.find((f) => f.page.id === pageId);
+                if (fp) {
+                  // Fetch full page data from domain API
+                  fetch(`/api/domains/${fp.page.domain.id}`).then((r) => r.json()).then((domainData) => {
+                    const fullPage = domainData.pages?.find((p: { id: string }) => p.id === pageId);
+                    if (fullPage) setSelectedPageData(fullPage);
+                  });
+                  fetch(`/api/groups?domainId=${fp.page.domain.id}`).then((r) => r.json()).then((data) => { if (Array.isArray(data)) setGroups(data); });
+                }
               }}
             />
           </div>
@@ -332,6 +346,42 @@ export default function FunnelDetailPage({ params }: { params: Promise<{ id: str
           )}
         </div>
       </main>
+
+      {selectedPageId && (() => {
+        const fp = funnel.pages.find((f) => f.page.id === selectedPageId);
+        if (!fp) return null;
+        const p = fp.page;
+        const fullPage = selectedPageData as Record<string, unknown> | null;
+        return <PageDetailPanel
+          page={{
+            id: p.id, url: p.url,
+            title: (fullPage?.title as string | null) ?? p.title,
+            description: (fullPage?.description as string | null) ?? null,
+            h1: (fullPage?.h1 as string | null) ?? null,
+            headings: (fullPage?.headings as string | null) ?? null,
+            bodyText: (fullPage?.bodyText as string | null) ?? null,
+            images: (fullPage?.images as string | null) ?? null,
+            statusCode: p.statusCode, responseTime: p.responseTime,
+            linksFrom: (fullPage?.linksFrom as { href: string; statusCode: number | null; isExternal: boolean; anchor: string | null }[]) ?? p.linksFrom.map((l) => ({ ...l, anchor: null })),
+            groupMembers: (fullPage?.groupMembers as { group: { id: string; name: string; color: string } }[]) ?? p.groupMembers,
+          }}
+          onClose={() => setSelectedPageId(null)}
+          groups={groups}
+          onAssignGroup={isAdmin ? async (pageId, groupId) => {
+            await fetch("/api/groups/members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pageId, groupId }) });
+            fetchFunnel();
+          } : undefined}
+          onRemoveFromSpecificGroup={isAdmin ? async (pageId, groupId) => {
+            await fetch(`/api/groups/members?pageId=${pageId}&groupId=${groupId}`, { method: "DELETE" });
+            fetchFunnel();
+          } : undefined}
+          onCrawlPage={isAdmin ? async (url) => {
+            const domainId = fp.page.domain.id;
+            await fetch("/api/crawl-page", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pageUrl: url, domainId }) });
+            fetchFunnel();
+          } : undefined}
+        />;
+      })()}
     </div>
   );
 }
