@@ -355,6 +355,32 @@ export default function SiteTreeGraph({ pages, onNodeClick, domainId = "", focus
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(layoutEdges);
 
+  // Update node data (groupColors, status) when pages change without full re-layout
+  const pagesDataKey = useMemo(() => pages.map((p) => `${p.id}:${p.groupMembers?.map((m) => m.group.id).join(",") || ""}`).sort().join("|"), [pages]);
+  useEffect(() => {
+    const pageById = new Map(pages.map((p) => [p.id, p]));
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        const page = pageById.get(node.id);
+        if (!page) return node;
+        const groupColors = page.groupMembers?.map((m) => m.group.color) || [];
+        const status = getPageStatus(page.statusCode, page.responseTime);
+        const colors = STATUS_COLORS[status];
+        return {
+          ...node,
+          style: { ...node.style, background: colors.bg },
+          data: {
+            ...node.data,
+            groupColors,
+            textColor: colors.text,
+            statusLabel: getStatusLabel(page.statusCode),
+            responseTime: page.responseTime,
+          },
+        };
+      })
+    );
+  }, [pagesDataKey, setNodes, pages]);
+
   // Apply radio button indicator to focused/selected node
   useEffect(() => {
     setNodes((currentNodes) =>
