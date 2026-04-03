@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import StatusCard from "@/components/StatusCard";
+import SiteTreeGraph from "@/components/SiteTreeGraph";
 import { getPageStatus, STATUS_COLORS, getStatusLabel } from "@/types";
 import {
   ArrowLeftIcon, FunnelIcon, PlusIcon, TrashIcon, ArrowPathIcon, LinkIcon,
@@ -153,6 +154,30 @@ export default function FunnelDetailPage({ params }: { params: Promise<{ id: str
           <StatusCard title="Avisos" value={warningPages} status="warning" icon={ExclamationTriangleIcon} />
           <StatusCard title="Erros" value={errorPages} status="error" icon={XCircleIcon} />
         </div>
+
+        {/* Funnel Tree View */}
+        {funnel.pages.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-[#1a1a2e] mb-4">Arvore do Funil</h2>
+            <SiteTreeGraph
+              pages={funnel.pages.map((fp) => ({
+                id: fp.page.id,
+                url: fp.page.url,
+                title: fp.page.title,
+                statusCode: fp.page.statusCode,
+                responseTime: fp.page.responseTime,
+                parentPageId: null,
+                linksFrom: fp.page.linksFrom.map((l) => ({ href: l.href, toPageId: null })),
+                groupMembers: fp.page.groupMembers,
+              }))}
+              domainId={`funnel-${id}`}
+              onNodeClick={(pageId) => {
+                const page = funnel.pages.find((fp) => fp.page.id === pageId);
+                if (page) router.push(`/domains/${page.page.domain.id}?focusPage=${pageId}`);
+              }}
+            />
+          </div>
+        )}
 
         {/* Linked Funnels */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">

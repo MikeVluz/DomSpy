@@ -84,15 +84,7 @@ function buildHorizontalTreeLayout(pages: PageNode[]) {
     assigned.add(sorted[0].id);
   }
 
-  // Pass 2: use parentPageId from crawl data (most reliable)
-  for (const page of sorted) {
-    if (assigned.has(page.id)) continue;
-    if (page.parentPageId && pageById.has(page.parentPageId) && page.parentPageId !== page.id) {
-      addChild(page.parentPageId, page.id);
-    }
-  }
-
-  // Pass 3: use URL hierarchy for remaining unassigned pages
+  // Pass 2: use URL hierarchy first (gives better tree structure)
   for (const page of sorted) {
     if (assigned.has(page.id)) continue;
 
@@ -110,10 +102,25 @@ function buildHorizontalTreeLayout(pages: PageNode[]) {
       }
       currentUrl = parentPath;
     }
+    if (found) continue;
+  }
 
-    // Last resort: attach to first root
-    if (!found) {
+  // Pass 3: use parentPageId from crawl data for remaining
+  for (const page of sorted) {
+    if (assigned.has(page.id)) continue;
+    if (page.parentPageId && pageById.has(page.parentPageId) && page.parentPageId !== page.id) {
+      addChild(page.parentPageId, page.id);
+    }
+  }
+
+  // Pass 4: attach remaining orphans to first root
+  for (const page of sorted) {
+    if (assigned.has(page.id)) continue;
+    if (roots.length > 0) {
       addChild(roots[0], page.id);
+    } else {
+      roots.push(page.id);
+      assigned.add(page.id);
     }
   }
 
