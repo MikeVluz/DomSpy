@@ -195,10 +195,19 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
             );
           };
 
+          // Clean body text: collapse blank lines, trim whitespace
+          const cleanBodyText = (text: string) => text
+            .replace(/\n{3,}/g, "\n\n")       // max 2 consecutive newlines
+            .replace(/[ \t]+$/gm, "")          // trim trailing spaces per line
+            .replace(/^\s*\n/gm, "\n")         // remove whitespace-only lines
+            .replace(/\n{3,}/g, "\n\n")        // collapse again after cleanup
+            .trim();
+
           // Parse body text with [IMG:N] markers for inline rendering
           const renderBodyWithImages = (text: string) => {
+            const cleaned = cleanBodyText(text);
             // Split by [IMG:N] markers, keeping the markers as separate tokens
-            const parts = text.split(/(\[IMG:\d+\])/);
+            const parts = cleaned.split(/(\[IMG:\d+\])/);
             const elements: React.ReactNode[] = [];
 
             for (let i = 0; i < parts.length; i++) {
@@ -210,11 +219,11 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
                   elements.push(<div key={`img-${i}`}>{imgRef(imgs[imgIdx], imgIdx)}</div>);
                 }
               } else if (part.trim()) {
-                elements.push(<p key={`text-${i}`} className="whitespace-pre-wrap">{highlightText(part, "Texto da Pagina")}</p>);
+                elements.push(<p key={`text-${i}`} className="whitespace-pre-wrap">{highlightText(part.trim(), "Texto da Pagina")}</p>);
               }
             }
 
-            return <div className="text-sm text-[#1a1a2e] leading-loose font-sans">{elements}</div>;
+            return <div className="text-sm text-[#1a1a2e] leading-relaxed font-sans space-y-2">{elements}</div>;
           };
 
           return (
@@ -223,9 +232,33 @@ export default function PageDetailPanel({ page, onClose, onDismissAlert, dismiss
                 <div id="section-body">
                   <h4 className="text-base font-semibold text-[#1a1a2e] flex items-center gap-2 mb-5"><DocumentTextIcon className="w-5 h-5" /> Estrutura da Pagina</h4>
                   <div className="bg-gray-50 rounded-xl p-6">
-                    {page.bodyText.includes("[IMG:") ? renderBodyWithImages(page.bodyText) : (
-                      <pre className="text-sm text-[#1a1a2e] whitespace-pre-wrap font-sans leading-loose">{highlightText(page.bodyText, "Texto da Pagina")}</pre>
-                    )}
+                    {page.bodyText.includes("[IMG:") ? renderBodyWithImages(page.bodyText) : (() => {
+                      const cleaned = cleanBodyText(page.bodyText!);
+                      if (imgs.length > 0) {
+                        // Distribute images among paragraphs for old crawl data without markers
+                        const paragraphs = cleaned.split(/\n\n+/).filter((p) => p.trim());
+                        const interval = Math.max(1, Math.floor(paragraphs.length / (imgs.length + 1)));
+                        let imgIdx = 0;
+                        return (
+                          <div className="text-sm text-[#1a1a2e] leading-relaxed font-sans space-y-2">
+                            {paragraphs.map((para, pi) => {
+                              const showImg = imgIdx < imgs.length && (pi > 0 && pi % interval === 0);
+                              const currentImg = showImg ? imgIdx++ : -1;
+                              return (
+                                <div key={pi}>
+                                  {showImg && currentImg >= 0 && imgRef(imgs[currentImg], currentImg)}
+                                  <p className="whitespace-pre-wrap">{highlightText(para.trim(), "Texto da Pagina")}</p>
+                                </div>
+                              );
+                            })}
+                            {imgIdx < imgs.length && (
+                              <div>{imgs.slice(imgIdx).map((img, i) => <div key={`trail-${i}`}>{imgRef(img, imgIdx + i)}</div>)}</div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return <pre className="text-sm text-[#1a1a2e] whitespace-pre-wrap font-sans leading-relaxed">{highlightText(cleaned, "Texto da Pagina")}</pre>;
+                    })()}
                   </div>
                 </div>
               )}
