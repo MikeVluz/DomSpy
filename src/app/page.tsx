@@ -78,12 +78,12 @@ export default function Dashboard() {
   const totalOk = Math.max(0, totalPages - totalBroken - totalSlow);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen" style={{ background: "var(--bg-primary)" }}>
       <Sidebar />
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 ml-64 p-8 theme-transition">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[#1a1a2e]">Dashboard</h1>
-          <p className="text-gray-500 mt-1">Visao geral do monitoramento</p>
+          <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Dashboard</h1>
+          <p style={{ color: "var(--text-secondary)" }} className="mt-1">Visao geral do monitoramento</p>
         </div>
 
         {/* Global Search */}
