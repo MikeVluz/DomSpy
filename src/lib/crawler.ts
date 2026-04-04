@@ -192,7 +192,7 @@ async function fetchSitemapUrls(domainUrl: string): Promise<string[]> {
 export async function crawlDomain(domainId: string, domainUrl: string, options: CrawlOptions = {}) {
   const { maxPages = 100, maxDepth = 5, timeout = 10000 } = options;
   const crawlSession = await prisma.crawlSession.create({ data: { domainId, status: "running" } });
-  await prisma.page.deleteMany({ where: { domainId } });
+  // Don't delete existing pages - update them instead during crawl
   let totalPages = 0, brokenLinks = 0, slowPages = 0;
 
   console.log("Trying sitemap.xml for:", domainUrl);
@@ -203,7 +203,12 @@ export async function crawlDomain(domainId: string, domainUrl: string, options: 
     for (const url of sitemapUrls.slice(0, maxPages)) {
       const pd = await fetchPage(url, timeout); if (!pd) continue;
       totalPages++; if (pd.statusCode === 0 || pd.statusCode >= 400) brokenLinks++; if (pd.responseTime > 2000) slowPages++;
-      const page = await prisma.page.create({ data: { url: pd.url, domainId, statusCode: pd.statusCode, responseTime: pd.responseTime, title: pd.title, description: pd.description, h1: pd.h1, headings: pd.headings, bodyText: pd.bodyText, images: pd.images, contentHash: pd.contentHash, crawlId: crawlSession.id } });
+      const page = await prisma.page.upsert({
+        where: { url_domainId: { url: pd.url, domainId } },
+        update: { statusCode: pd.statusCode, responseTime: pd.responseTime, title: pd.title, description: pd.description, h1: pd.h1, headings: pd.headings, bodyText: pd.bodyText, images: pd.images, contentHash: pd.contentHash, crawlId: crawlSession.id },
+        create: { url: pd.url, domainId, statusCode: pd.statusCode, responseTime: pd.responseTime, title: pd.title, description: pd.description, h1: pd.h1, headings: pd.headings, bodyText: pd.bodyText, images: pd.images, contentHash: pd.contentHash, crawlId: crawlSession.id },
+      });
+      await prisma.link.deleteMany({ where: { fromPageId: page.id } });
       for (const link of pd.links) { await prisma.link.create({ data: { fromPageId: page.id, href: link.href, isExternal: link.isExternal, isRedirect: false, anchor: link.anchor } }); }
       await prisma.crawlSession.update({ where: { id: crawlSession.id }, data: { totalPages, brokenLinks, slowPages } });
     }
@@ -220,7 +225,12 @@ export async function crawlDomain(domainId: string, domainUrl: string, options: 
       const pd = await fetchPage(url, timeout); if (!pd) continue;
       if (totalPages === 0 && pd.statusCode === 403 && pd.title?.includes("Just a moment")) { await prisma.crawlSession.update({ where: { id: crawlSession.id }, data: { status: "blocked", finishedAt: new Date() } }); await prisma.domain.update({ where: { id: domainId }, data: { lastCrawlAt: new Date() } }); return crawlSession.id; }
       totalPages++; if (pd.statusCode === 0 || pd.statusCode >= 400) brokenLinks++; if (pd.responseTime > 2000) slowPages++;
-      const page = await prisma.page.create({ data: { url: pd.url, domainId, statusCode: pd.statusCode, responseTime: pd.responseTime, title: pd.title, description: pd.description, h1: pd.h1, headings: pd.headings, bodyText: pd.bodyText, images: pd.images, contentHash: pd.contentHash, parentPageId: parentId, crawlId: crawlSession.id } });
+      const page = await prisma.page.upsert({
+        where: { url_domainId: { url: pd.url, domainId } },
+        update: { statusCode: pd.statusCode, responseTime: pd.responseTime, title: pd.title, description: pd.description, h1: pd.h1, headings: pd.headings, bodyText: pd.bodyText, images: pd.images, contentHash: pd.contentHash, parentPageId: parentId, crawlId: crawlSession.id },
+        create: { url: pd.url, domainId, statusCode: pd.statusCode, responseTime: pd.responseTime, title: pd.title, description: pd.description, h1: pd.h1, headings: pd.headings, bodyText: pd.bodyText, images: pd.images, contentHash: pd.contentHash, parentPageId: parentId, crawlId: crawlSession.id },
+      });
+      await prisma.link.deleteMany({ where: { fromPageId: page.id } });
       for (const link of pd.links) {
         await prisma.link.create({ data: { fromPageId: page.id, href: link.href, isExternal: link.isExternal, isRedirect: false, anchor: link.anchor } });
         if (!link.isExternal && !visited.has(link.href) && depth < maxDepth && totalPages + queue.length < maxPages) { visited.add(link.href); queue.push({ url: link.href, depth: depth + 1, parentId: page.id }); }
